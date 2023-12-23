@@ -1,3 +1,6 @@
+tensorboard==2.13.0
+tb_nightly==2.14.0a20230803
+tensorboardX==2.6.2.1
 tornado>=6.1
 setuptools
 pydantic

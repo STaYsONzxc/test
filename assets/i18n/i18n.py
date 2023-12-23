@@ -3,6 +3,7 @@ import sys
 sys.path.append('..')
 import logging
 
+
 logger = logging.getLogger(__name__)
 def load_language_list(language):
     try:
@@ -30,7 +31,7 @@ class I18nAuto:
 
         # Check if a specific language variant exists, e.g., 'es_ES'
         if self._language_exists(language):
-            self.language = language
+            self.language = 'ru_RU'
         else:
             # If not, check if there is a language with the first two characters
             # matching, e.g., 'es_' for 'es_ES'.
@@ -44,6 +45,7 @@ class I18nAuto:
                 self.language = 'en_US'
 
         self.language_map = load_language_list(self.language)
+        
 
     @staticmethod
     def _get_available_languages():

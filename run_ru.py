@@ -11,7 +11,7 @@ import threading
 from assets.configs.config import Config
 import lib.globals.globals as rvc_globals
 
-import lib.tools.model_fetcher as model_fetcher
+import lib.tools.model_fetcher as model_fetcher_ru
 import math as math
 import ffmpeg as ffmpeg
 import traceback
@@ -21,8 +21,10 @@ from subprocess import Popen
 from time import sleep
 import json
 import pathlib
-
 import fairseq
+import socket
+import requests
+import subprocess
 
 logging.getLogger("faiss").setLevel(logging.WARNING)
 import faiss
@@ -41,8 +43,6 @@ import datetime
 from glob import glob1
 import signal
 from signal import SIGTERM
-
-
 from assets.i18n.i18n import I18nAuto
 from lib.infer.infer_libs.train.process_ckpt import (
     change_info,
@@ -69,6 +69,8 @@ import time
 import csv
 from shlex import quote as SQuote
 
+logger = logging.getLogger(__name__)
+
 RQuote = lambda val: SQuote(str(val))
 
 tmp = os.path.join(now_dir, "temp")
@@ -79,33 +81,41 @@ shutil.rmtree(tmp, ignore_errors=True)
 
 os.makedirs(tmp, exist_ok=True)
 
+# Start the download server
+if True == True:
+    host = "localhost"
+    port = 8000
 
-# for folder in directories:
-#    os.makedirs(os.path.join(now_dir, folder), exist_ok=True)
-def remove_invalid_chars(text):
-    pattern = re.compile(r"[^\x00-\x7F]+")
-    return pattern.sub("", text)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(2)  # Timeout in seconds
 
-
-def remove_text_between_parentheses(lines, start_line, end_line):
-    pattern = r"\[([^\]]*)\]\([^)]*\)"
-    processed_lines = []
-    for line_number, line in enumerate(lines, start=1):
-        if start_line <= line_number <= end_line:
-            modified_line = re.sub(pattern, r"\1", line)
-            processed_lines.append(modified_line)
-        else:
-            processed_lines.append(line)
-
-    return "\n".join(processed_lines)
-
-
-with open("README.md", "r", encoding="utf8") as f:
-    inforeadme = f.read()
-
-inforeadme = remove_text_between_parentheses(inforeadme.split("\n"), 6, 17)
-inforeadme = remove_invalid_chars(inforeadme)
-inforeadme = remove_text_between_parentheses(inforeadme.split("\n"), 191, 207)
+    try:
+        sock.connect((host, port))
+        logger.info("Starting the Flask server")
+        logger.warn(
+            f"Something is listening on port {port}; check open connection and restart Kanoyo."
+        )
+        logger.warn("Trying to start it anyway")
+        sock.close()
+        requests.post("http://localhost:8000/shutdown")
+        time.sleep(3)
+        script_path = os.path.join(now_dir, "lib", "tools", "server.py")
+        try:
+            subprocess.Popen(f"python {script_path}", shell=True)
+            logger.info("Flask server started!")
+        except Exception as e:
+            logger.error(f"Failed to start the Flask server")
+            logger.error(e)
+    except Exception as e:
+        logger.info("Starting the Flask server")
+        sock.close()
+        script_path = os.path.join(now_dir, "lib", "tools", "server.py")
+        try:
+            subprocess.Popen(f"python {script_path}", shell=True)
+            logger.info("Flask server started!")
+        except Exception as e:
+            logger.error("Failed to start the Flask server")
+            logger.error(e)
 
 os.makedirs(tmp, exist_ok=True)
 os.makedirs(os.path.join(now_dir, "logs"), exist_ok=True)
@@ -114,9 +124,6 @@ os.environ["temp"] = tmp
 warnings.filterwarnings("ignore")
 torch.manual_seed(114514)
 logging.getLogger("numba").setLevel(logging.WARNING)
-
-logger = logging.getLogger(__name__)
-
 
 if not os.path.isdir("lib/csvdb/"):
     os.makedirs("lib/csvdb")
@@ -195,9 +202,11 @@ class ToolButton(gr.Button, gr.components.FormComponent):
     def get_block_name(self):
         return "button"
 
+
 import lib.infer.infer_libs.uvr5_pack.mdx as mdx
 from lib.infer.modules.uvr5.mdxprocess import (
     get_model_list,
+    get_demucs_model_list,
     id_to_ptm,
     prepare_mdx,
     run_mdx,
@@ -255,13 +264,6 @@ audio_others_paths = [
     if name.endswith(tuple(sup_audioext)) and root == audio_others_root
 ]
 
-uvr5_names = [
-    name.replace(".pth", "")
-    for name in os.listdir(weight_uvr5_root)
-    if name.endswith(".pth") or "onnx" in name
-]
-
-
 check_for_name = lambda: sorted(names)[0] if names else ""
 
 datasets = []
@@ -276,14 +278,38 @@ def get_dataset():
     else:
         return ""
 
+uvr5_names = ["HP2_all_vocals.pth", "HP3_all_vocals.pth", "HP5_only_main_vocal.pth",
+             "VR-DeEchoAggressive.pth", "VR-DeEchoDeReverb.pth", "VR-DeEchoNormal.pth"]
+
+__s = "https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/"
+
+def id_(mkey):
+    if mkey in uvr5_names:
+        model_name, ext = os.path.splitext(mkey)
+        mpath = f"{now_dir}/assets/uvr5_weights/{mkey}"
+        if not os.path.exists(f'{now_dir}/assets/uvr5_weights/{mkey}'):
+            print('Downloading model...',end=' ')
+            subprocess.run(
+                ["python", "-m", "wget", "-o", mpath, __s+mkey]
+            )
+            print(f'saved to {mpath}')
+            return model_name
+        else:
+            return model_name
+    else:
+        return None
 
 def update_model_choices(select_value):
     model_ids = get_model_list()
     model_ids_list = list(model_ids)
+    demucs_model_ids = get_demucs_model_list()
+    demucs_model_ids_list = list(demucs_model_ids)
     if select_value == "VR":
         return {"choices": uvr5_names, "__type__": "update"}
     elif select_value == "MDX":
         return {"choices": model_ids_list, "__type__": "update"}
+    elif select_value == "Demucs (Beta)":
+        return {"choices": demucs_model_ids_list, "__type__": "update"}
 
 
 def update_dataset_list(name):
@@ -321,7 +347,6 @@ def get_fshift_presets():
 
     return fshift_presets_list if fshift_presets_list else ""
 
-
 def uvr(
     model_name,
     inp_root,
@@ -335,15 +360,23 @@ def uvr(
     infos = []
     if architecture == "VR":
         try:
-            infos.append(
-                i18n("Starting audio conversion... (This might take a moment)")
-            )
+            
             inp_root = inp_root.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
             save_root_vocal = (
                 save_root_vocal.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
             )
             save_root_ins = (
                 save_root_ins.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
+            )
+
+            model_name = id_(model_name)
+            if model_name == None:
+                return ""
+            else:
+                pass
+            
+            infos.append(
+                i18n("Starting audio conversion... (This might take a moment)")
             )
 
             if model_name == "onnx_dereverb_By_FoxJoy":
@@ -522,9 +555,79 @@ def uvr(
                 traceback.print_exc()
 
             print("clean_empty_cache")
-
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
+    elif architecture == "Demucs (Beta)":
+        try:
+            infos.append(
+                i18n("Starting audio conversion... (This might take a moment)")
+            )
+            yield "\n".join(infos)
+            inp_root, save_root_vocal, save_root_ins = [
+                x.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
+                for x in [inp_root, save_root_vocal, save_root_ins]
+            ]
+
+            if inp_root != "":
+                paths = [
+                    os.path.join(inp_root, name)
+                    for root, _, files in os.walk(inp_root, topdown=False)
+                    for name in files
+                    if name.endswith(tuple(sup_audioext)) and root == inp_root
+                ]
+            else:
+                paths = [path.name for path in paths]
+
+            # Loop through the audio files and separate sources
+            for path in paths:
+                input_audio_path = os.path.join(inp_root, path)
+                filename_without_extension = os.path.splitext(
+                    os.path.basename(input_audio_path)
+                )[0]
+                _output_dir = os.path.join(tmp, model_name, filename_without_extension)
+                vocals = os.path.join(_output_dir, "vocals.wav")
+                no_vocals = os.path.join(_output_dir, "no_vocals.wav")
+
+                os.makedirs(tmp, exist_ok=True)
+
+                if torch.cuda.is_available():
+                    cpu_insted = ""
+                else:
+                    cpu_insted = "-d cpu"
+                print(cpu_insted)
+
+                # Use with os.system  to separate audio sources becuase at invoking from the command line it is faster than invoking from python
+                os.system(
+                    f"python -m .separate --two-stems=vocals -n {model_name} {cpu_insted} {input_audio_path} -o {tmp}"
+                )
+
+                # Move vocals and no_vocals to the output directory assets/audios for the vocal and assets/audios/audio-others for the instrumental
+                shutil.move(vocals, save_root_vocal)
+                shutil.move(no_vocals, save_root_ins)
+
+                # And now rename the vocals and no vocals with the name of the input audio file and the suffix vocals or instrumental
+                os.rename(
+                    os.path.join(save_root_vocal, "vocals.wav"),
+                    os.path.join(
+                        save_root_vocal, f"{filename_without_extension}_vocals.wav"
+                    ),
+                )
+                os.rename(
+                    os.path.join(save_root_ins, "no_vocals.wav"),
+                    os.path.join(
+                        save_root_ins, f"{filename_without_extension}_instrumental.wav"
+                    ),
+                )
+
+                # Remove the temporary directory
+                os.rmdir(tmp, model_name)
+
+                infos.append(f"{os.path.basename(input_audio_path)}->Success")
+                yield "\n".join(infos)
+
+        except:
+            infos.append(traceback.format_exc())
+            yield "\n".join(infos)
 
 
 def change_choices():
@@ -1085,6 +1188,7 @@ def click_train(
                 1 if if_save_latest13 == True else 0,
                 1 if if_cache_gpu17 == True else 0,
                 1 if if_save_every_weights18 == True else 0,
+                version19,
             )
         )
     logger.info(cmd)
@@ -1253,10 +1357,10 @@ def cli_infer(com):
             "lib/csvdb/formanting.csv", "w+", "formanting", DoFormant, Quefrency, Timbre
         )
 
-    print("Kano-VC-Fork Infer-CLI: Starting the inference...")
+    print("Kanoyo-RVC-Fork Infer-CLI: Starting the inference...")
     vc_data = vc.get_vc(model_name, protection_amnt, protect1)
     print(vc_data)
-    print("Kano-VC-Fork Infer-CLI: Performing inference...")
+    print("Kanoyo-RVC-Fork Infer-CLI: Performing inference...")
     conversion_data = vc.vc_single(
         speaker_id,
         source_audio_path,
@@ -1274,7 +1378,7 @@ def cli_infer(com):
     )
     if "Success." in conversion_data[0]:
         print(
-            "Kano-VC-Fork Infer-CLI: Inference succeeded. Writing to %s/%s..."
+            "Kanoyo-RVC-Fork Infer-CLI: Inference succeeded. Writing to %s/%s..."
             % ("assets", "audios", "audio-outputs", output_file_name)
         )
         wavfile.write(
@@ -1283,11 +1387,11 @@ def cli_infer(com):
             conversion_data[1][1],
         )
         print(
-            "Kano-VC-Fork Infer-CLI: Finished! Saved output to %s/%s"
+            "Kanoyo-RVC-Fork Infer-CLI: Finished! Saved output to %s/%s"
             % ("assets", "audios", "audio-outputs", output_file_name)
         )
     else:
-        print("Kano-VC-Fork Infer-CLI: Inference failed. Here's the traceback: ")
+        print("Kanoyo-RVC-Fork Infer-CLI: Inference failed. Here's the traceback: ")
         print(conversion_data[0])
 
 
@@ -1298,12 +1402,12 @@ def cli_pre_process(com):
     sample_rate = com[2]
     num_processes = int(com[3])
 
-    print("Kano-VC-Fork Pre-process: Starting...")
+    print("Kanoyo-RVC-Fork Pre-process: Starting...")
     generator = preprocess_dataset(
         trainset_directory, model_name, sample_rate, num_processes
     )
     execute_generator_function(generator)
-    print("Kano-VC-Fork Pre-process: Finished")
+    print("Kanoyo-RVC-Fork Pre-process: Finished")
 
 
 def cli_extract_feature(com):
@@ -1316,9 +1420,9 @@ def cli_extract_feature(com):
     crepe_hop_length = int(com[5])
     version = com[6]  # v1 or v2
 
-    print("Kano-VC-CLI: Extract Feature Has Pitch: " + str(has_pitch_guidance))
-    print("Kano-VC-CLI: Extract Feature Version: " + str(version))
-    print("Kano-VC-Fork Feature Extraction: Starting...")
+    print("Kanoyo-RVC-CLI: Extract Feature Has Pitch: " + str(has_pitch_guidance))
+    print("Kanoyo-RVC-CLI: Extract Feature Version: " + str(version))
+    print("Kanoyo-RVC-Fork Feature Extraction: Starting...")
     generator = extract_f0_feature(
         gpus,
         num_processes,
@@ -1329,7 +1433,7 @@ def cli_extract_feature(com):
         crepe_hop_length,
     )
     execute_generator_function(generator)
-    print("Kano-VC-Fork Feature Extraction: Finished")
+    print("Kanoyo-RVC-Fork Feature Extraction: Finished")
 
 
 def cli_train(com):
@@ -1352,7 +1456,7 @@ def cli_train(com):
     g_pretrained_path = "%sf0G%s.pth" % (pretrained_base, sample_rate)
     d_pretrained_path = "%sf0D%s.pth" % (pretrained_base, sample_rate)
 
-    print("Kano-VC-Fork Train-CLI: Training...")
+    print("Kanoyo-RVC-Fork Train-CLI: Training...")
     click_train(
         model_name,
         sample_rate,
@@ -1375,10 +1479,10 @@ def cli_train_feature(com):
     com = cli_split_command(com)
     model_name = com[0]
     version = com[1]
-    print("Kano-VC-Fork Train Feature Index-CLI: Training... Please wait")
+    print("Kanoyo-RVC-Fork Train Feature Index-CLI: Training... Please wait")
     generator = train_index(model_name, version)
     execute_generator_function(generator)
-    print("Kano-VC-Fork Train Feature Index-CLI: Done!")
+    print("Kanoyo-RVC-Fork Train Feature Index-CLI: Done!")
 
 
 def cli_extract_model(com):
@@ -1393,10 +1497,10 @@ def cli_extract_model(com):
         model_path, save_name, sample_rate, has_pitch_guidance, info, version
     )
     if extract_small_model_process == "Success.":
-        print("Kano-VC-Fork Extract Small Model: Success!")
+        print("Kanoyo-RVC-Fork Extract Small Model: Success!")
     else:
         print(str(extract_small_model_process))
-        print("Kano-VC-Fork Extract Small Model: Failed!")
+        print("Kanoyo-RVC-Fork Extract Small Model: Failed!")
 
 
 def preset_apply(preset, qfer, tmbr):
@@ -1549,7 +1653,7 @@ def cli_navigation_loop():
 
 
 if config.is_cli:
-    print("\n\nKano-VC-Fork CLI\n")
+    print("\n\nKanoyo-RVC-Fork CLI\n")
     print(
         "Welcome to the CLI version of RVC. Please read the documentation on README.MD to understand how to use this app.\n"
     )
@@ -1704,19 +1808,16 @@ def save_to_wav2(dropbox):
 
     shutil.move(file_path, target_path)
     return target_path
-
-
-from assets.themes.black import Kano
-
-# Crear una instancia de Kano
-mi_kano = Kano()
-
+    
 
 def GradioSetup():
     default_weight = names[0] if names else ""
 
-    with gr.Blocks(theme=mi_kano, title="Kano-VC-Fork") as app:
-        gr.HTML("<h1> 💎 Kano-VC-Fork </h1>")
+    with gr.Blocks(theme='NoCrypt/miku', title="Kanoyo-RVC-Fork") as app:
+        gr.HTML("<h1> ❄️ K-RVC-Fork Only RU 48k Colab Edition </h1>")
+        gr.HTML(
+            "<h3>Лучший телеграм канал на всей планете — <a href='https://t.me/kanoyotelegram'>Присоединяйся!</a></h3>"
+        )
         with gr.Tabs():
             with gr.TabItem(i18n("Model Inference")):
                 with gr.Row():
@@ -1725,15 +1826,26 @@ def GradioSetup():
                         choices=sorted(names),
                         value=default_weight,
                     )
-                    refresh_button = gr.Button(i18n("Refresh"), variant="primary")
-                    clean_button = gr.Button(
-                        i18n("Unload voice to save GPU memory"), variant="primary"
+                    best_match_index_path1, _ = match_index(sid0.value)
+                    file_index2 = gr.Dropdown(
+                        label=i18n(
+                            "Auto-detect index path and select from the dropdown:"
+                        ),
+                        choices=get_indexes(),
+                        value=best_match_index_path1,
+                        interactive=True,
+                        allow_custom_value=True,
                     )
+                    with gr.Column():
+                        refresh_button = gr.Button(i18n("Refresh"), variant="primary")
+                        clean_button = gr.Button(
+                            i18n("Unload voice to save GPU memory"), variant="primary"
+                        )
                     clean_button.click(
                         fn=lambda: ({"value": "", "__type__": "update"}),
                         inputs=[],
                         outputs=[sid0],
-                        api_name="infer_clean"
+                        api_name="infer_clean",
                     )
 
                 with gr.TabItem(i18n("Single")):
@@ -1756,21 +1868,7 @@ def GradioSetup():
                                 type="filepath",
                             )
 
-                        best_match_index_path1, _ = match_index(
-                            sid0.value
-                        )  # Get initial index from default sid0 (first voice model in list)
-
                         with gr.Column():  # Second column for pitch shift and other options
-                            file_index2 = gr.Dropdown(
-                                label=i18n(
-                                    "Auto-detect index path and select from the dropdown:"
-                                ),
-                                choices=get_indexes(),
-                                value=best_match_index_path1,
-                                interactive=True,
-                                allow_custom_value=True,
-                            )
-
                             with gr.Column():
                                 input_audio1 = gr.Dropdown(
                                     label=i18n(
@@ -1801,7 +1899,7 @@ def GradioSetup():
                                 fn=change_choices,
                                 inputs=[],
                                 outputs=[sid0, file_index2, input_audio1],
-                                api_name="infer_refresh"
+                                api_name="infer_refresh",
                             )
                     # Create a checkbox for advanced settings
                     advanced_settings_checkbox = gr.Checkbox(
@@ -1830,20 +1928,30 @@ def GradioSetup():
                                         "mangio-crepe-tiny",
                                         "rmvpe",
                                         "rmvpe+",
+                                    ]
+                                    if config.dml == False
+                                    else [
+                                        "pm",
+                                        "harvest",
+                                        "dio",
+                                        "rmvpe",
+                                        "rmvpe+",
                                     ],
                                     value="rmvpe+",
                                     interactive=True,
-                                )
-                                f0_autotune = gr.Checkbox(
-                                    label="Enable autotune", interactive=True
-                                )
-                                split_audio = gr.Checkbox(
-                                    label="Split Audio (Better Results)", interactive=True
                                 )
                                 format1_ = gr.Radio(
                                     label=i18n("Export file format:"),
                                     choices=["wav", "flac", "mp3", "m4a"],
                                     value="wav",
+                                    interactive=True,
+                                )
+
+                                f0_autotune = gr.Checkbox(
+                                    label="Enable autotune", interactive=True, value=False
+                                )
+                                split_audio = gr.Checkbox(
+                                    label="Split Audio (Better Results)",
                                     interactive=True,
                                 )
 
@@ -1858,16 +1966,7 @@ def GradioSetup():
                                     interactive=True,
                                     visible=False,
                                 )
-                                filter_radius0 = gr.Slider(
-                                    minimum=0,
-                                    maximum=7,
-                                    label=i18n(
-                                        "If >=3: apply median filtering to the harvested pitch results. The value represents the filter radius and can reduce breathiness."
-                                    ),
-                                    value=3,
-                                    step=1,
-                                    interactive=True,
-                                )
+                 
 
                                 minpitch_slider = gr.Slider(
                                     label=i18n("Min pitch:"),
@@ -1980,6 +2079,16 @@ def GradioSetup():
                                     ),
                                     value=0.33,
                                     step=0.01,
+                                    interactive=True,
+                                )
+                                filter_radius0 = gr.Slider(
+                                    minimum=0,
+                                    maximum=7,
+                                    label=i18n(
+                                        "If >=3: apply median filtering to the harvested pitch results. The value represents the filter radius and can reduce breathiness."
+                                    ),
+                                    value=3,
+                                    step=1,
                                     interactive=True,
                                 )
                                 index_rate1 = gr.Slider(
@@ -2138,17 +2247,9 @@ def GradioSetup():
                                 value=0,
                             )
                             opt_input = gr.Textbox(
-                                label=i18n("Specify output folder:"), value="opt"
+                                label=i18n("Specify output folder:"), value="assets/audios/audio-outputs"
                             )
                         with gr.Column():
-                            file_index4 = gr.Dropdown(
-                                label=i18n(
-                                    "Auto-detect index path and select from the dropdown:"
-                                ),
-                                choices=get_indexes(),
-                                value=best_match_index_path1,
-                                interactive=True,
-                            )
                             dir_input = gr.Textbox(
                                 label=i18n(
                                     "Enter the path of the audio folder to be processed (copy it from the address bar of the file manager):"
@@ -2158,14 +2259,7 @@ def GradioSetup():
                             sid0.select(
                                 fn=match_index,
                                 inputs=[sid0],
-                                outputs=[file_index2, file_index4],
-                            )
-
-                            refresh_button.click(
-                                fn=lambda: change_choices()[1],
-                                inputs=[],
-                                outputs=file_index4,
-                                api_name="infer_refresh_batch",
+                                outputs=[file_index2],
                             )
 
                         with gr.Column():
@@ -2211,6 +2305,13 @@ def GradioSetup():
                                                 "crepe-tiny",
                                                 "mangio-crepe",
                                                 "mangio-crepe-tiny",
+                                                "rmvpe",
+                                            ]
+                                            if config.dml == False
+                                            else [
+                                                "pm",
+                                                "harvest",
+                                                "dio",
                                                 "rmvpe",
                                             ],
                                             value="rmvpe",
@@ -2273,7 +2374,7 @@ def GradioSetup():
                                         interactive=True,
                                     )
                                     f0_autotune = gr.Checkbox(
-                                        label="Enable autotune", interactive=True
+                                        label="Enable autotune", interactive=True, value=False
                                     )
                                     hop_length = gr.Slider(
                                         minimum=1,
@@ -2299,7 +2400,7 @@ def GradioSetup():
                                     vc_transform1,
                                     f0method1,
                                     file_index3,
-                                    file_index4,
+                                    file_index2,
                                     index_rate2,
                                     filter_radius1,
                                     resample_sr1,
@@ -2440,7 +2541,15 @@ def GradioSetup():
                                     "mangio-crepe",
                                     "rmvpe",
                                     "rmvpe_gpu",
-                                ],
+                                ]
+                                if config.dml == False
+                                    else [
+                                        "pm",
+                                        "harvest",
+                                        "dio",
+                                        "rmvpe",
+                                        "rmvpe_gpu",
+                                    ],
                                 value="rmvpe",
                                 interactive=True,
                             )
@@ -2646,78 +2755,78 @@ def GradioSetup():
                         but4.click(train_index, [exp_dir1, version19], info3)
                         but7.click(resources.save_model, [exp_dir1, save_action], info3)
 
-            with gr.TabItem(i18n("UVR5")):  # UVR section
-                with gr.Row():
-                    with gr.Column():
-                        model_select = gr.Radio(
-                            label=i18n("Model Architecture:"),
-                            choices=["VR", "MDX"],
-                            value="VR",
-                            interactive=True,
-                        )
-                        dir_wav_input = gr.Textbox(
-                            label=i18n(
-                                "Enter the path of the audio folder to be processed:"
-                            ),
-                            value=os.path.join(now_dir, "assets", "audios"),
-                        )
-                        wav_inputs = gr.File(
-                            file_count="multiple",
-                            label=i18n(
-                                "You can also input audio files in batches. Choose one of the two options. Priority is given to reading from the folder."
-                            ),
-                        )
+            # with gr.TabItem(i18n("UVR5")):  # UVR section
+            #     with gr.Row():
+            #         with gr.Column():
+            #             model_select = gr.Radio(
+            #                 label=i18n("Model Architecture:"),
+            #                 choices=["VR", "MDX", "Demucs (Beta)"],
+            #                 value="VR",
+            #                 interactive=True,
+            #             )
+            #             dir_wav_input = gr.Textbox(
+            #                 label=i18n(
+            #                     "Enter the path of the audio folder to be processed:"
+            #                 ),
+            #                 value=os.path.join(now_dir, "assets", "audios"),
+            #             )
+            #             wav_inputs = gr.File(
+            #                 file_count="multiple",
+            #                 label=i18n(
+            #                     "You can also input audio files in batches. Choose one of the two options. Priority is given to reading from the folder."
+            #                 ),
+            #             )
 
-                    with gr.Column():
-                        model_choose = gr.Dropdown(
-                            label=i18n("Model:"), choices=uvr5_names
-                        )
-                        agg = gr.Slider(
-                            minimum=0,
-                            maximum=20,
-                            step=1,
-                            label="Vocal Extraction Aggressive",
-                            value=10,
-                            interactive=True,
-                            visible=False,
-                        )
-                        opt_vocal_root = gr.Textbox(
-                            label=i18n("Specify the output folder for vocals:"),
-                            value="assets/audios",
-                        )
-                        opt_ins_root = gr.Textbox(
-                            label=i18n("Specify the output folder for accompaniment:"),
-                            value="assets/audios/audio-others",
-                        )
-                        format0 = gr.Radio(
-                            label=i18n("Export file format:"),
-                            choices=["wav", "flac", "mp3", "m4a"],
-                            value="flac",
-                            interactive=True,
-                        )
-                    model_select.change(
-                        fn=update_model_choices,
-                        inputs=model_select,
-                        outputs=model_choose,
-                    )
-                    but2 = gr.Button(i18n("Convert"), variant="primary")
-                    vc_output4 = gr.Textbox(label=i18n("Output information:"))
-                    # wav_inputs.upload(fn=save_to_wav2_edited, inputs=[wav_inputs], outputs=[])
-                    but2.click(
-                        uvr,
-                        [
-                            model_choose,
-                            dir_wav_input,
-                            opt_vocal_root,
-                            wav_inputs,
-                            opt_ins_root,
-                            agg,
-                            format0,
-                            model_select,
-                        ],
-                        [vc_output4],
-                        api_name="uvr_convert",
-                    )
+            #         with gr.Column():
+            #             model_choose = gr.Dropdown(
+            #                 label=i18n("Model:"), choices=uvr5_names
+            #             )
+            #             agg = gr.Slider(
+            #                 minimum=0,
+            #                 maximum=20,
+            #                 step=1,
+            #                 label="Vocal Extraction Aggressive",
+            #                 value=10,
+            #                 interactive=True,
+            #                 visible=False,
+            #             )
+            #             opt_vocal_root = gr.Textbox(
+            #                 label=i18n("Specify the output folder for vocals:"),
+            #                 value="assets/audios",
+            #             )
+            #             opt_ins_root = gr.Textbox(
+            #                 label=i18n("Specify the output folder for accompaniment:"),
+            #                 value="assets/audios/audio-others",
+            #             )
+            #             format0 = gr.Radio(
+            #                 label=i18n("Export file format:"),
+            #                 choices=["wav", "flac", "mp3", "m4a"],
+            #                 value="flac",
+            #                 interactive=True,
+            #             )
+            #         model_select.change(
+            #             fn=update_model_choices,
+            #             inputs=model_select,
+            #             outputs=model_choose,
+            #         )
+            #         but2 = gr.Button(i18n("Convert"), variant="primary")
+            #         vc_output4 = gr.Textbox(label=i18n("Output information:"))
+            #         # wav_inputs.upload(fn=save_to_wav2_edited, inputs=[wav_inputs], outputs=[])
+            #         but2.click(
+            #             uvr,
+            #             [
+            #                 model_choose,
+            #                 dir_wav_input,
+            #                 opt_vocal_root,
+            #                 wav_inputs,
+            #                 opt_ins_root,
+            #                 agg,
+            #                 format0,
+            #                 model_select,
+            #             ],
+            #             [vc_output4],
+            #             api_name="uvr_convert",
+            #         )
             with gr.TabItem(i18n("TTS")):
                 with gr.Column():
                     text_test = gr.Textbox(
@@ -2802,7 +2911,7 @@ def GradioSetup():
                 resources.download_backup()
                 resources.download_dataset(trainset_dir4)
                 resources.download_audio()
-                resources.youtube_separator()
+                resources.audio_downloader_separator()
             with gr.TabItem(i18n("Extra")):
                 gr.Markdown(
                     value=i18n(
@@ -2844,8 +2953,6 @@ def GradioSetup():
                 ],
             )
 
-            with gr.TabItem(i18n("Readme")):
-                gr.Markdown(value=inforeadme)
         return app
 
 
@@ -2861,7 +2968,7 @@ def GradioRun(app):
             server_port=config.listen_port,
             quiet=True,
             favicon_path="./assets/images/icon.png",
-            share=False,
+            share=share_gradio_link,
         )
     else:
         app.queue(concurrency_count=concurrency_count, max_size=max_size).launch(

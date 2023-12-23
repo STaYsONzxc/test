@@ -184,7 +184,7 @@ class Config:
             return True
         except Exception:
             return False
-        
+
     @staticmethod
     def has_xpu() -> bool:
         if hasattr(torch, "xpu") and torch.xpu.is_available():
@@ -195,19 +195,29 @@ class Config:
     def use_fp32_config(self):
         for config_file in version_config_list:
             self.json_config[config_file]["train"]["fp16_run"] = False
+            with open(f"./assets/configs/{config_file}", "r") as f:
+                strr = f.read().replace("true", "false")
+            with open(f"./assets/configs/{config_file}", "w") as f:
+                f.write(strr)
+        with open("./lib/infer/modules/train/preprocess.py", "r") as f:
+            strr = f.read().replace("3.7", "3.0")
+        with open("./lib/infer/modules/train/preprocess.py", "w") as f:
+            f.write(strr)
+        print("overwrite preprocess and configs.json")
 
     def device_config(self) -> tuple:
         if torch.cuda.is_available():
             current_device = torch.cuda.current_device()
-            major, minor = torch.cuda.get_device_capability(current_device)
-            cuda_version = f"{major}.{minor}"
+            cuda_version = '.'.join(str(x) for x in torch.cuda.get_device_capability(torch.cuda.current_device()))
+            actual_vram = torch.cuda.get_device_properties(torch.cuda.current_device()).total_memory / (1024 ** 3)
             if self.has_xpu():
                 self.device = self.instead = "xpu:0"
                 self.is_half = True
             i_device = int(self.device.split(":")[-1])
             self.gpu_name = torch.cuda.get_device_name(i_device)
-            if 1 < float(cuda_version) < 3.7:
-                logger.info("No supported CUDA version found, using CPU...")
+            torch.cuda.empty_cache()
+            if (actual_vram is not None and actual_vram < 0.3) or (1 < float(cuda_version) < 3.7):
+                logger.info("Using CPU due to unsupported CUDA version or low VRAM...")
                 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
                 self.device = self.instead = "cpu"
                 self.is_half = False
@@ -247,6 +257,7 @@ class Config:
             self.device = self.instead = "cpu"
             self.is_half = False
             self.use_fp32_config()
+        
         if self.n_cpu == 0:
             self.n_cpu = cpu_count()
 
@@ -284,20 +295,7 @@ class Config:
                 )
                 == False
             ):
-                try:
-                    os.rename(
-                        os.path.join(python_path, "Lib", "site-packages", "onnxruntime"),
-                        os.path.join(python_path, "Lib", "site-packages", "onnxruntime-cuda"),
-                    )
-                except:
-                    pass
-                try:
-                    os.rename(
-                        os.path.join(python_path, "Lib", "site-packages", "onnxruntime-dml"),
-                        os.path.join(python_path, "Lib", "site-packages", "onnxruntime"),
-                    )
-                except:
-                    pass
+                pass
             # if self.device != "cpu":
             import torch_directml
 
@@ -313,18 +311,6 @@ class Config:
                 )
                 == False
             ):
-                try:
-                    os.rename(
-                        os.path.join(python_path, "Lib", "site-packages", "onnxruntime"),
-                        os.path.join(python_path, "Lib", "site-packages", "onnxruntime-dml"),
-                    )
-                except:
-                    pass
-                try:
-                    os.rename(
-                        os.path.join(python_path, "Lib", "site-packages", "onnxruntime-cuda"),
-                        os.path.join(python_path, "Lib", "site-packages", "onnxruntime"),
-                    )
-                except:
-                    pass
+                pass
+        print("is_half:%s, device:%s" % (self.is_half, self.device))
         return x_pad, x_query, x_center, x_max

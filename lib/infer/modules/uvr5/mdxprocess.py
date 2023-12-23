@@ -7,8 +7,16 @@ import soundfile as sf
 import numpy as np
 import torch
 import json
-now_dir = os.getcwd()
+
+folder = os.path.dirname(os.path.abspath(__file__))
+folder = os.path.dirname(folder)
+folder = os.path.dirname(folder)
+folder = os.path.dirname(folder)
+now_dir = os.path.dirname(folder)
+
+import sys
 sys.path.append(now_dir)
+
 import lib.infer.infer_libs.uvr5_pack.mdx as mdx
 branch = "https://github.com/NaJeongMo/Colab-for-MDX_B"
 
@@ -16,11 +24,36 @@ model_params = "https://raw.githubusercontent.com/TRvlvr/application_data/main/m
 _Models = "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/"
 # _models = "https://pastebin.com/raw/jBzYB8vz"
 _models = "https://raw.githubusercontent.com/TRvlvr/application_data/main/filelists/download_checks.json"
-stem_naming = "https://pastebin.com/raw/mpH4hRcF"
+
 
 file_folder = "Colab-for-MDX_B"
-model_ids = requests.get(_models).json()
-model_ids = model_ids["mdx_download_list"].values()
+model_request = requests.get(_models).json()
+model_ids = model_request["mdx_download_list"].values()
+demucs_download_list = model_request["demucs_download_list"]
+
+# Iterate through the keys and get the model names
+model_ids_demucs_inpure = [name.split(":")[1].strip() for name in demucs_download_list.keys()]
+
+# Remove duplicates by converting the list to a set and then back to a list
+model_ids_demucs = list(set(model_ids_demucs_inpure))
+
+# Remove some not working models
+demucs_ids_to_delete = ["tasnet_extra", "tasnet", "light_extra", "light", "demucs_extra", "demucs", "demucs_unittest", "demucs48_hq", "repro_mdx_a_hybrid_only", "repro_mdx_a_time_only", "repro_mdx_a", "UVR Model"]
+
+# Add some models that are not in the list
+demucs_ids_to_add = ["SIG"]
+
+# Add the new ID to the model_ids_demucs list
+
+for demucs_ids_to_add in demucs_ids_to_add:
+    if demucs_ids_to_add not in model_ids_demucs:
+        model_ids_demucs.append(demucs_ids_to_add)
+
+# If the ID is in the list of IDs to delete, remove it from the list of model_ids_demucs
+for demucs_ids_to_delete in demucs_ids_to_delete:
+    if demucs_ids_to_delete in model_ids_demucs:
+        model_ids_demucs.remove(demucs_ids_to_delete)
+        
 #print(model_ids)
 model_params = requests.get(model_params).json()
 #Remove request for stem_naming
@@ -48,13 +81,17 @@ else:
 def get_model_list():
     return model_ids
 
+def get_demucs_model_list():
+    return model_ids_demucs
+
 def id_to_ptm(mkey):
     if mkey in model_ids:
+        #print(mkey)
         mpath = f"{now_dir}/assets/uvr5_weights/MDX/{mkey}"
         if not os.path.exists(f'{now_dir}/assets/uvr5_weights/MDX/{mkey}'):
             print('Downloading model...',end=' ')
             subprocess.run(
-                ["wget", _Models+mkey, "-O", mpath]
+                ["python", "-m", "wget", "-o", mpath, _Models+mkey]
             )
             print(f'saved to {mpath}')
             return mpath
@@ -119,6 +156,7 @@ def run_mdx(onnx, mdx_model,filename, output_format='wav',diff=False,suffix=None
     #instrumental_save_path = os.path.join(instrumental_folder, f"{save_path}_{stem_name}.{output_format}")
     save_path = f"{os.path.basename(os.path.splitext(filename)[0])}_{stem_name}.{output_format}"
     save_path = os.path.join(
+            'assets',
             'audios',
             save_path
         )
@@ -135,6 +173,8 @@ def run_mdx(onnx, mdx_model,filename, output_format='wav',diff=False,suffix=None
         stem_name = f"{stem_name}_diff" if diff_stem_name is None else diff_stem_name
         save_path = f"{os.path.basename(os.path.splitext(filename)[0])}_{stem_name}.{output_format}"
         save_path = os.path.join(
+                'assets',
+                'audios',
                 'audio-others',
                 save_path
             )
