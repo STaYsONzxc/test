@@ -11,7 +11,7 @@ import threading
 from assets.configs.config import Config
 import lib.globals.globals as rvc_globals
 
-import lib.tools.model_fetcher as model_fetcher_ru
+import lib.tools.model_fetcher_ru as model_fetcher
 import math as math
 import ffmpeg as ffmpeg
 import traceback
