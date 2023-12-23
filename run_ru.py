@@ -2457,13 +2457,13 @@ def GradioSetup():
                             )
                         sr2 = gr.Radio(
                             label=i18n("Target sample rate:"),
-                            choices=["40k", "48k", "32k"],
-                            value="40k",
+                            choices=["48k"],
+                            value="48k",
                             interactive=True,
                         )
                         version19 = gr.Radio(
                             label=i18n("Version:"),
-                            choices=["v1", "v2"],
+                            choices=["v2"],
                             value="v2",
                             interactive=True,
                             visible=True,
@@ -2644,12 +2644,12 @@ def GradioSetup():
                             with gr.Row():
                                 pretrained_G14 = gr.Textbox(
                                     label=i18n("Load pre-trained base model G path:"),
-                                    value="assets/pretrained_v2/f0G40k.pth",
+                                    value="assets/pretrained_v2/f0G48k.pth",
                                     interactive=True,
                                 )
                                 pretrained_D15 = gr.Textbox(
                                     label=i18n("Load pre-trained base model D path:"),
-                                    value="assets/pretrained_v2/f0D40k.pth",
+                                    value="assets/pretrained_v2/f0D48k.pth",
                                     interactive=True,
                                 )
                                 with gr.Row():

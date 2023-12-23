@@ -94,7 +94,7 @@
   "Enter the model name:": "Введите название модели:",
   "Target sample rate:": "Целевая частота дискретизации:",
   "Whether the model has pitch guidance (required for singing, optional for speech):": "Имеет ли модель управление высотой тона (обязательно для пения, необязательно для речи):",
-  "Version": "Версия",
+  "Version:": "Версия",
   "Number of CPU processes:": "Количество процессов ЦП, используемых для извлечения высоты звука и обработки данных:",
   "Enter the path of the training folder:": "Введите путь к папке обучения:",
   "Specify the model ID:": "Пожалуйста, укажите идентификатор модели:",
