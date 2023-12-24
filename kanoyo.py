@@ -1956,11 +1956,7 @@ def GradioSetup():
                                         "Select the pitch extraction algorithm:"
                                     ),
                                     choices=[
-                                        "pm",
                                         "harvest",
-                                        "dio",
-                                        "crepe",
-                                        "crepe-tiny",
                                         "mangio-crepe",
                                         "mangio-crepe-tiny",
                                         "rmvpe",
@@ -1968,9 +1964,7 @@ def GradioSetup():
                                     ]
                                     if config.dml == False
                                     else [
-                                        "pm",
                                         "harvest",
-                                        "dio",
                                         "rmvpe",
                                         "rmvpe+",
                                     ],
@@ -2344,20 +2338,14 @@ def GradioSetup():
                                                 "Select the pitch extraction algorithm:"
                                             ),
                                             choices=[
-                                                "pm",
-                                                "harvest",
-                                                "dio",
-                                                "crepe",
-                                                "crepe-tiny",
+                                                "harvest",,
                                                 "mangio-crepe",
                                                 "mangio-crepe-tiny",
                                                 "rmvpe",
                                             ]
                                             if config.dml == False
                                             else [
-                                                "pm",
                                                 "harvest",
-                                                "dio",
                                                 "rmvpe",
                                             ],
                                             value="rmvpe",
@@ -2584,19 +2572,14 @@ def GradioSetup():
                             f0method8 = gr.Radio(
                                 label=i18n("Select the pitch extraction algorithm:"),
                                 choices=[
-                                    "pm",
                                     "harvest",
-                                    "dio",
-                                    "crepe",
                                     "mangio-crepe",
                                     "rmvpe",
                                     "rmvpe_gpu",
                                 ]
                                 if config.dml == False
                                 else [
-                                    "pm",
                                     "harvest",
-                                    "dio",
                                     "rmvpe",
                                     "rmvpe_gpu",
                                 ],
