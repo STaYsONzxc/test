@@ -2709,12 +2709,12 @@ def GradioSetup():
                             with gr.Row():
                                 pretrained_G14 = gr.Textbox(
                                     label=i18n("Load pre-trained base model G path:"),
-                                    value="assets/pretrained_v2/f0G40k.pth",
+                                    value="assets/pretrained_v2/f0G48k.pth",
                                     interactive=True,
                                 )
                                 pretrained_D15 = gr.Textbox(
                                     label=i18n("Load pre-trained base model D path:"),
-                                    value="assets/pretrained_v2/f0D40k.pth",
+                                    value="assets/pretrained_v2/f0D48k.pth",
                                     interactive=True,
                                 )
                                 with gr.Row():
