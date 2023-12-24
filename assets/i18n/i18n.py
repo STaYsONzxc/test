@@ -34,7 +34,7 @@ class I18nAuto:
         else:
             # If not, check if there is a language with the first two characters
             # matching, e.g., 'es_' for 'es_ES'.
-            lang_prefix = language[:2] if language else "ru_RU"
+            lang_prefix = language[:2] if language else 'ru_RU'
             for available_language in self._get_available_languages():
                 if available_language.startswith(lang_prefix):
                     self.language = available_language
