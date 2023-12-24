@@ -701,7 +701,7 @@ def train_and_evaluate(
     if stopbtn:
         if os.path.exists(f"{hps.model_dir}/col"):
             os.remove(f"{hps.model_dir}/col")
-        logger.info("Была нажата кнопка "Стоп". Программа закрыта.")
+        logger.info("Была нажата кнопка Стоп. Программа закрыта.")
         ckpt = net_g.module.state_dict() if hasattr(net_g, "module") else net_g.state_dict()
         logger.info(
             "сохранение финального ckpt:%s"
