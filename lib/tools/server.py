@@ -323,7 +323,7 @@ def load_downloaded_model(url):
         for path, subdirs, files in os.walk(unzips_path):
             for item in files:
                 item_path = os.path.join(path, item)
-                if item.startswith("added_") and item.endswith(".index"):
+                if item.startswith(("added_", "trained_")) and item.endswith(".index"):
                     index_file = True
                     if os.path.exists(item_path):
                         if os.path.exists(os.path.join(logs_dir, item)):
@@ -350,7 +350,10 @@ def load_downloaded_model(url):
             print(i18n("No relevant file was found to upload."))
         
         os.chdir(parent_path)
-        return result
+        if 'text/html' in request.headers.get('Accept', ''):
+            return redirect("http://localhost:8000/downloaded", code=302)
+        else:
+            return ""
     except Exception as e:
         os.chdir(parent_path)
         if "too much use" in str(e):
@@ -363,9 +366,13 @@ def load_downloaded_model(url):
     finally:
         os.chdir(parent_path)
 
+@app.route('/downloaded', methods=['GET'])
+def downloaded():
+    return render_template('sucess.html')
+
 @app.route('/shutdown', methods=['POST'])
 def shoutdown():
-    print("This flask server is shutting down please close the window")   
+    print("This flask server is shutting down... Please close the window!")   
     pid = os.getpid()
     os.kill(pid, signal.SIGTERM)
 
