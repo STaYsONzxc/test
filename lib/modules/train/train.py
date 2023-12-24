@@ -836,7 +836,7 @@ def train_and_evaluate(
                     f'Сохранение лучшего на данный момент ckpt: {hps.name}_fittest:{savee(ckpt, hps.sample_rate, hps.if_f0, f"{hps.name}_fittest", epoch, hps.version, hps)}'
                 )
         if epoch < 10:
-            message = f"Обнаружение перетренированности начинается с {10 - epoch} эпох"
+            message = f"Обнаружение перетренированности начнется через {10 - epoch} эпох"
         elif epoch == 10:
             message = "Обнаружение перетренированности начнется на следующей эпохе"
         elif epoch - best["epoch"] == 0 and not continued:

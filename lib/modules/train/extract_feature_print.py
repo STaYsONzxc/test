@@ -84,8 +84,8 @@ def readwave(wav_path, normalize=False):
 
 # HuBERT model
 os.system('cls' if os.name == 'nt' else 'clear')
-print("Starting feature extraction...\n")
-printt("Loaded model {}".format(model_path))
+print("Начало извлечения характеристик...\n")
+printt("Загруженная модель {}".format(model_path))
 # if hubert model is exist
 if os.access(model_path, os.F_OK) == False:
     printt(
@@ -145,4 +145,4 @@ else:
             except:
                 printt(traceback.format_exc())
             pbar.update(1)
-    printt("\nFeature extraction completed successfully!")
+    printt("\nИзвлечение характеристик успешно завершено!")
