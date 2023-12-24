@@ -2338,7 +2338,7 @@ def GradioSetup():
                                                 "Select the pitch extraction algorithm:"
                                             ),
                                             choices=[
-                                                "harvest",,
+                                                "harvest",
                                                 "mangio-crepe",
                                                 "mangio-crepe-tiny",
                                                 "rmvpe",
