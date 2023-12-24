@@ -3044,17 +3044,6 @@ def GradioSetup():
                             value=rvc_globals.NotesOrHertz,
                             interactive=True,
                         )
-                        themes_select = gr.Dropdown(
-                            loadThemes.get_list(),
-                            value=loadThemes.read_json(),
-                            label=i18n("Select Theme:"),
-                            visible=True,
-                        )
-                        themes_select.change(
-                            fn=loadThemes.select_theme,
-                            inputs=themes_select,
-                            outputs=[],
-                        )
 
             noteshertz.change(
                 fn=lambda nhertz: rvc_globals.__setattr__("NotesOrHertz", nhertz),
