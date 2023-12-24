@@ -24,10 +24,13 @@ class I18nAuto:
     >>> i18n.print()
     Using Language: en_US
     """
-    def __init__(self, language=None):
-        from locale import getdefaultlocale
-        language = language or getdefaultlocale()[0]
+def __init__(self, language=None):
+    from locale import getdefaultlocale
+    language = language or getdefaultlocale()[0]
 
+    if language is None:
+        self.language = 'ru_RU'
+    else:
         # Check if a specific language variant exists, e.g., 'es_ES'
         if self._language_exists(language):
             self.language = 'ru_RU'
@@ -43,7 +46,8 @@ class I18nAuto:
                 # If no match found, default to 'en_US'.
                 self.language = 'en_US'
 
-        self.language_map = load_language_list(self.language)
+    self.language_map = load_language_list(self.language)
+
 
     @staticmethod
     def _get_available_languages():
