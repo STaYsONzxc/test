@@ -167,7 +167,7 @@ def main():
         n_gpus = 1
     if n_gpus < 1:
         # patch to unblock people without gpus. there is probably a better way.
-        logger.warn("NO GPU DETECTED: falling back to CPU - this may take a while")
+        logger.warn("Не обнаружено GPU: возвращаемся к процессору - это может занять некоторое время")
         n_gpus = 1
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = str(randint(20000, 55555))
@@ -280,7 +280,7 @@ def run(rank, n_gpus, hps):
             utils.latest_checkpoint_path(hps.model_dir, "D_*.pth"), net_d, optim_d
         )  # D多半加载没事
         if rank == 0:
-            logger.info("loaded D")
+            logger.info("загружен D")
         # _, _, _, epoch_str = utils.load_checkpoint(utils.latest_checkpoint_path(hps.model_dir, "G_*.pth"), net_g, optim_g,load_opt=0)
         _, _, _, epoch_str = utils.load_checkpoint(
             utils.latest_checkpoint_path(hps.model_dir, "G_*.pth"), net_g, optim_g
@@ -312,7 +312,7 @@ def run(rank, n_gpus, hps):
         global_step = 0
         if hps.pretrainG != "":
             if rank == 0:
-                logger.info("Loaded pretrained %s" % (hps.pretrainG))
+                logger.info("Загружен pretrained %s" % (hps.pretrainG))
             if hasattr(net_g, "module"):
                 logger.info(
                     net_g.module.load_state_dict(
@@ -327,7 +327,7 @@ def run(rank, n_gpus, hps):
                 )  ##测试不加载优化器
         if hps.pretrainD != "":
             if rank == 0:
-                logger.info("Loaded pretrained %s" % (hps.pretrainD))
+                logger.info("Загружен %s" % (hps.pretrainD))
             if hasattr(net_d, "module"):
                 logger.info(
                     net_d.module.load_state_dict(
@@ -594,7 +594,7 @@ def train_and_evaluate(
             if global_step % hps.train.log_interval == 0:
                 lr = optim_g.param_groups[0]["lr"]
                 logger.info(
-                    "Train Epoch: {} [{:.0f}%]".format(
+                    "Тренируемая эпоха: {} [{:.0f}%]".format(
                         epoch, 100.0 * batch_idx / len(train_loader)
                     )
                 )
@@ -673,7 +673,7 @@ def train_and_evaluate(
             else:
                 ckpt = net_g.state_dict()
             logger.info(
-                "saving ckpt %s_e%s:%s"
+                "сохранение ckpt %s_e%s:%s"
                 % (
                     hps.name,
                     epoch,
@@ -695,16 +695,16 @@ def train_and_evaluate(
             stopbtn_str = next(csv.reader(csv_file), [None])[0]
             if stopbtn_str is not None: stopbtn = stopbtn_str.lower() == 'true'
     except (ValueError, TypeError, FileNotFoundError, IndexError) as e:
-        print(f"Handling exception: {e}")
+        print(f"Обработка исключений: {e}")
         stopbtn = False
 
     if stopbtn:
         if os.path.exists(f"{hps.model_dir}/col"):
             os.remove(f"{hps.model_dir}/col")
-        logger.info("Stop Button was pressed. The program is closed.")
+        logger.info("Была нажата кнопка "Стоп". Программа закрыта.")
         ckpt = net_g.module.state_dict() if hasattr(net_g, "module") else net_g.state_dict()
         logger.info(
-            "saving final ckpt:%s"
+            "сохранение финального ckpt:%s"
             % (
                 savee(
                     ckpt, hps.sample_rate, hps.if_f0, hps.name, epoch, hps.version, hps
@@ -719,9 +719,9 @@ def train_and_evaluate(
 
     if rank == 0 and hps.if_retrain_collapse and loss_gen_all / lastValue < hps.collapse_threshold:
         logger.warning("Mode collapse detected, model quality may be hindered. More information here: https://rentry.org/RVC_making-models#mode-collapse")
-        logger.warning(f'loss_gen_all={loss_gen_all.item()}, last value={lastValue}, drop % {loss_gen_all.item() / lastValue * 100}')
+        logger.warning(f'loss_gen_all={loss_gen_all.item()}, последнее значение={lastValue}, падение % {loss_gen_all.item() / lastValue * 100}')
         if hps.if_retrain_collapse:
-            logger.info("Restarting training from last fit epoch...")
+            logger.info("Перезапуск обучения с последней эпохи...")
             with open(f"{hps.model_dir}/col", 'w') as f:
                 f.write(f'{bestEpochStep},{epoch}')
             os._exit(15)
@@ -733,7 +733,7 @@ def train_and_evaluate(
     if rank == 0 and hps.if_stop_on_fit:
         lr = optim_g.param_groups[0]["lr"]
         logger.info(
-            f"====> Epoch: {epoch} Step: {global_step} Learning Rate: {lr:.5} {epoch_recorder.record()}"
+            f"====> Эпоха: {epoch} Шаг: {global_step} Темп обучения: {lr:.5} {epoch_recorder.record()}"
         )
         # Amor For Tensorboard display
         if loss_mel > 75:
@@ -833,34 +833,34 @@ def train_and_evaluate(
                 else:
                     ckpt = net_g.state_dict()
                 logger.info(
-                    f'Saving current fittest ckpt: {hps.name}_fittest:{savee(ckpt, hps.sample_rate, hps.if_f0, f"{hps.name}_fittest", epoch, hps.version, hps)}'
+                    f'Сохранение лучшего на данный момент ckpt: {hps.name}_fittest:{savee(ckpt, hps.sample_rate, hps.if_f0, f"{hps.name}_fittest", epoch, hps.version, hps)}'
                 )
         if epoch < 10:
-            message = f"Overtrain detection begins in {10 - epoch} epochs"
+            message = f"Обнаружение перетренированности начинается с {10 - epoch} эпох"
         elif epoch == 10:
-            message = "Overtrain detection will begin next epoch"
+            message = "Обнаружение перетренированности начнется на следующей эпохе"
         elif epoch - best["epoch"] == 0 and not continued:
-            message = f"New best epoch!! [e{epoch}]\n"
+            message = f"Новая лучшая эпоха! [e{epoch}]\n"
         else:
-            message = f'Last best epoch [e{best["epoch"]}] seen {epoch - best["epoch"]} epochs ago\n'
+            message = f'Последняя лучшая эпоха была [e{best["epoch"]}] seen {epoch - best["epoch"]} эпох(и) назад\n'
         logger.info(message)
         # if overtraining is detected, exit (idk what the 2333333 stands for but it seems like success ¯\_(ツ)_/¯)
         if epoch - best["epoch"] >= 100:
             shutil.copy2(f"logs/weights/{hps.name}_fittest.pth", os.path.join(hps.model_dir,f"{hps.name}_{epoch}.pth"))
             logger.info(
-                f'No improvement found after epoch: [e{best["epoch"]}]. The program is closed.'
+                f'После этой эпохи улучшений не обнаружено: [e{best["epoch"]}]. Программа закрыта.'
             )
             os._exit(2333333)
 
     if epoch >= hps.total_epoch and rank == 0:
-        logger.info("Training successfully completed, closing the program...")
+        logger.info("Обучение успешно завершено, закрытие программы...")
 
         if hasattr(net_g, "module"):
             ckpt = net_g.module.state_dict()
         else:
             ckpt = net_g.state_dict()
         logger.info(
-            "Saving final ckpt... %s"
+            "Сохранение финального ckpt... %s"
             % (
                 savee(
                     ckpt, hps.sample_rate, hps.if_f0, hps.name, epoch, hps.version, hps

@@ -3,7 +3,6 @@ import sys
 sys.path.append('..')
 import logging
 
-
 logger = logging.getLogger(__name__)
 def load_language_list(language):
     try:
@@ -11,35 +10,40 @@ def load_language_list(language):
             return json.load(f)
     except FileNotFoundError:
         raise FileNotFoundError(
-            f"Failed to load language file for {language}. Check if the correct .json file exists."
+            f"Произошла ошибка с языком {language}. Проверьте является ли .json файл корректным."
         )
 
 
 class I18nAuto:
+    """
+    A class used for internationalization using JSON language files.
+
+    Examples
+    --------
+    >>> i18n = I18nAuto()
+    >>> i18n.print()
+    Using Language: en_US
+    """
     def __init__(self, language=None):
         from locale import getdefaultlocale
         language = language or getdefaultlocale()[0]
 
-        if language is None:
-            self.language = 'en_US'
+        # Check if a specific language variant exists, e.g., 'es_ES'
+        if self._language_exists(language):
+            self.language = language
         else:
-            # Check if a specific language variant exists, e.g., 'es_ES'
-            if self._language_exists(language):
-                self.language = language
+            # If not, check if there is a language with the first two characters
+            # matching, e.g., 'es_' for 'es_ES'.
+            lang_prefix = language[:2]
+            for available_language in self._get_available_languages():
+                if available_language.startswith(lang_prefix):
+                    self.language = 'ru_RU'
+                    break
             else:
-                # If not, check if there is a language with the first two characters
-                # matching, e.g., 'es_' for 'es_ES'.
-                lang_prefix = language[:2]
-                for available_language in self._get_available_languages():
-                    if available_language.startswith(lang_prefix):
-                        self.language = 'ru_RU'
-                        break
-                else:
-                    # If no match found, default to 'en_US'.
-                    self.language = 'en_US'
+                # If no match found, default to 'en_US'.
+                self.language = 'ru_RU'
 
         self.language_map = load_language_list(self.language)
-        
 
     @staticmethod
     def _get_available_languages():
@@ -60,4 +64,4 @@ class I18nAuto:
 
     def print(self):
         """Prints the language currently in use."""
-        logger.info(f"Using Language: {self.language}")
+        logger.info(f"Используется язык: {self.language}")

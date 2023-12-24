@@ -81,7 +81,7 @@ def download_file_with_progress(url, destination_path):
 if not os.path.exists("torchcrepe"):
     os_name = platform.system()
 
-    print("Cloning the GitHub repository into the temporary directory...")
+    print("Клонирование репозитория GitHub во временную директорию...")
 
     mingit_path = os.path.join(os.getcwd(), "lib", "tools", "mingit", "cmd", "git.exe")
 
@@ -104,10 +104,10 @@ if not os.path.exists("torchcrepe"):
             ]
         )
 
-    print("Copying the torchcrepe folder...")
+    print("Копирование папки torchcrepe...")
     shutil.copytree("temp_torchcrepe/torchcrepe", "./torchcrepe")
 
-    print("Removing the temporary directory...")
+    print("Удаление временной директории...")
     print(os_name)
     if os_name == "Windows":
         subprocess.run("rmdir /s /q temp_torchcrepe", shell=True)
@@ -120,15 +120,15 @@ for remote_folder, file_list in models_download:
         destination_path = os.path.join(local_folder, file)
         url = f"{URL_BASE}/{remote_folder}{file}"
         if not os.path.exists(destination_path):
-            print(f"Downloading {url} to {destination_path}...")
+            print(f"Скачивание {url} в {destination_path}...")
             download_file_with_progress(url, destination_path)
 
 for file_name, local_folder in individual_files:
     destination_path = os.path.join(local_folder, file_name)
     url = f"{URL_BASE}/{file_name}"
     if not os.path.exists(destination_path):
-        print(f"Downloading {url} to {destination_path}...")
+        print(f"Скачивание {url} в {destination_path}...")
         download_file_with_progress(url, destination_path)
 
 os.system("cls" if os.name == "nt" else "clear")
-logger.info("Applio download suscessfully continuing...")
+logger.info("Загрузка Kanoyo успешно продолжается...")

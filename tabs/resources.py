@@ -10,6 +10,7 @@ import torch
 import glob
 import gradio as gr
 import traceback
+from urllib.parse import urlencode, unquote, urlparse, parse_qs
 import lib.modules.uvr5.mdx as mdx
 from lib.modules.uvr5.mdxprocess import (
     get_model_list,
@@ -300,6 +301,23 @@ def download_from_url(url):
                 with open(os.path.join(name[-1]), "wb") as newfile:
                     newfile.write(file.content)
             else:
+                return None
+        elif "disk.yandex.ru" in url:
+           base_url = 'https://cloud-api.yandex.net/v1/disk/public/resources/download?'
+           public_key = url  
+           final_url = base_url + urlencode(dict(public_key=public_key))
+           response = requests.get(final_url)
+           download_url = response.json()['href']
+           download_response = requests.get(download_url)
+
+           if download_response.status_code == 200:
+               filename = parse_qs(urlparse(unquote(download_url)).query).get('filename', [''])[0]
+               if filename: 
+                   os.chdir("./assets/zips")
+                   with open(filename, 'wb') as f:   
+                       f.write(download_response.content)
+           else:
+                print("Failed to get filename from URL.")
                 return None
         elif "pixeldrain.com" in url:
             try:

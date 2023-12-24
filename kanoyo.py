@@ -13,7 +13,7 @@ import threading
 from assets.configs.config import Config
 import lib.globals.globals as rvc_globals
 
-import lib.tools.modelFetcher_ru as modelFetcher
+import lib.tools.modelFetcher as modelFetcher
 import math as math
 import ffmpeg as ffmpeg
 import traceback
@@ -96,7 +96,7 @@ sock.settimeout(2)  # Timeout in seconds
 try:
     sock.connect((host, port))
     logger.warn(
-        f"Something is listening on port {port}; check open connection and restart Applio."
+        f"Something is listening on port {port}; check open connection and restart Kanoyo."
     )
     logger.warn("Trying to start it anyway")
     sock.close()
@@ -1383,10 +1383,10 @@ def cli_infer(com):
     maxpitch_slider = com[19]
     maxpitch_txtbox = maxpitch_slider
 
-    print("Applio-RVC-Fork Infer-CLI: Starting the inference...")
+    print("Kanoyo-RVC-Fork Infer-CLI: Starting the inference...")
     vc_data = vc.get_vc(model_name, protection_amnt, protect1)
     print(vc_data)
-    print("Applio-RVC-Fork Infer-CLI: Performing inference...")
+    print("Kanoyo-RVC-Fork Infer-CLI: Performing inference...")
     conversion_data = vc.vc_single(
         speaker_id,
         source_audio_path,
@@ -1410,9 +1410,9 @@ def cli_infer(com):
         f0_autotune,
     )
     if "Success." in conversion_data[0]:
-        print("Applio-RVC-Fork Infer-CLI: Inference succeeded.")
+        print("Kanoyo-RVC-Fork Infer-CLI: Inference succeeded.")
     else:
-        print("Applio-RVC-Fork Infer-CLI: Inference failed. Here's the traceback: ")
+        print("Kanoyo-RVC-Fork Infer-CLI: Inference failed. Here's the traceback: ")
         print(conversion_data[0])
 
 
@@ -1423,12 +1423,12 @@ def cli_pre_process(com):
     sample_rate = com[2]
     num_processes = int(com[3])
 
-    print("Applio-RVC-Fork Pre-process: Starting...")
+    print("Kanoyo-RVC-Fork Pre-process: Starting...")
     generator = preprocess_dataset(
         trainset_directory, model_name, sample_rate, num_processes
     )
     execute_generator_function(generator)
-    print("Applio-RVC-Fork Pre-process: Finished")
+    print("Kanoyo-RVC-Fork Pre-process: Finished")
 
 
 def cli_extract_feature(com):
@@ -1441,9 +1441,9 @@ def cli_extract_feature(com):
     crepe_hop_length = int(com[5])
     version = com[6]  # v1 or v2
 
-    print("Applio-RVC-CLI: Extract Feature Has Pitch: " + str(has_pitch_guidance))
-    print("Applio-RVC-CLI: Extract Feature Version: " + str(version))
-    print("Applio-RVC-Fork Feature Extraction: Starting...")
+    print("Kanoyo-RVC-CLI: Extract Feature Has Pitch: " + str(has_pitch_guidance))
+    print("Kanoyo-RVC-CLI: Extract Feature Version: " + str(version))
+    print("Kanoyo-RVC-Fork Feature Extraction: Starting...")
     generator = extract_f0_feature(
         gpus,
         num_processes,
@@ -1454,7 +1454,7 @@ def cli_extract_feature(com):
         crepe_hop_length,
     )
     execute_generator_function(generator)
-    print("Applio-RVC-Fork Feature Extraction: Finished")
+    print("Kanoyo-RVC-Fork Feature Extraction: Finished")
 
 
 def cli_train(com):
@@ -1481,7 +1481,7 @@ def cli_train(com):
     g_pretrained_path = "%sf0G%s.pth" % (pretrained_base, sample_rate)
     d_pretrained_path = "%sf0D%s.pth" % (pretrained_base, sample_rate)
 
-    print("Applio-RVC-Fork Train-CLI: Training...")
+    print("Kanoyo-RVC-Fork Train-CLI: Training...")
     click_train(
         model_name,
         sample_rate,
@@ -1508,10 +1508,10 @@ def cli_train_feature(com):
     com = cli_split_command(com)
     model_name = com[0]
     version = com[1]
-    print("Applio-RVC-Fork Train Feature Index-CLI: Training... Please wait")
+    print("Kanoyo-RVC-Fork Train Feature Index-CLI: Training... Please wait")
     generator = train_index(model_name, version)
     execute_generator_function(generator)
-    print("Applio-RVC-Fork Train Feature Index-CLI: Done!")
+    print("Kanoyo-RVC-Fork Train Feature Index-CLI: Done!")
 
 
 def cli_extract_model(com):
@@ -1526,10 +1526,10 @@ def cli_extract_model(com):
         model_path, save_name, sample_rate, has_pitch_guidance, info, version
     )
     if extract_small_model_process == "Success.":
-        print("Applio-RVC-Fork Extract Small Model: Success!")
+        print("Kanoyo-RVC-Fork Extract Small Model: Success!")
     else:
         print(str(extract_small_model_process))
-        print("Applio-RVC-Fork Extract Small Model: Failed!")
+        print("Kanoyo-RVC-Fork Extract Small Model: Failed!")
 
 
 def preset_apply(preset, qfer, tmbr):
@@ -1691,7 +1691,7 @@ def cli_navigation_loop():
 
 
 if config.cli:
-    print("\n\nApplio-RVC-Fork CLI\n")
+    print("\n\nKanoyo-RVC-Fork CLI\n")
     print(
         "Welcome to the CLI version of RVC. Please read the documentation on README.MD to understand how to use this app.\n"
     )
@@ -1846,22 +1846,14 @@ def save_to_wav2(dropbox):
     return target_path
 
 
-import lib.tools.loadThemes as loadThemes
-
-my_applio = loadThemes.load_json()
-if my_applio:
-    pass
-else:
-    my_applio = "JohnSmith9982/small_and_pretty"
-
 
 def GradioSetup():
     default_weight = ""
 
-    with gr.Blocks(theme=my_applio, title="Applio-RVC-Fork") as app:
-        gr.HTML("<h1> 🍏 Applio-RVC-Fork </h1>")
+    with gr.Blocks(theme='NoCrypt/miku', title="Kanoyo-RVC-Fork") as app:
+        gr.HTML("<h1> ❄️ K-RVC-Fork Colab & Kaggle Edition </h1>")
         gr.HTML(
-            "<h3>Discover over 15,000 voice models with our Discord bot — <a href='https://bot.applio.org'>Invite it here!</a></h3>"
+            "<h3>Лучший Telegram-канал во всей вселенной — <a href='https://t.me/kanoyotelegram'>Присоединяйся!</a></h3>"
         )
         with gr.Tabs():
             with gr.TabItem(i18n("Model Inference")):
