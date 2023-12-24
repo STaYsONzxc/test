@@ -10,7 +10,7 @@ def load_language_list(language):
             return json.load(f)
     except FileNotFoundError:
         raise FileNotFoundError(
-            f"Произошла ошибка с языком {language}. Проверьте является ли .json файл корректным."
+            f"Failed to load language file for {language}. Check if the correct .json file exists."
         )
 
 
@@ -24,20 +24,17 @@ class I18nAuto:
     >>> i18n.print()
     Using Language: en_US
     """
-def __init__(self, language=None):
-    from locale import getdefaultlocale
-    language = language or getdefaultlocale()[0]
+    def __init__(self, language=None):
+        from locale import getdefaultlocale
+        language = language or getdefaultlocale()[0]
 
-    if language is None:
-        self.language = 'ru_RU'
-    else:
         # Check if a specific language variant exists, e.g., 'es_ES'
         if self._language_exists(language):
-            self.language = 'ru_RU'
+            self.language = language
         else:
             # If not, check if there is a language with the first two characters
             # matching, e.g., 'es_' for 'es_ES'.
-            lang_prefix = language[:2]
+            lang_prefix = language[:2] if language else "ru_RU"
             for available_language in self._get_available_languages():
                 if available_language.startswith(lang_prefix):
                     self.language = available_language
@@ -46,8 +43,7 @@ def __init__(self, language=None):
                 # If no match found, default to 'en_US'.
                 self.language = 'en_US'
 
-    self.language_map = load_language_list(self.language)
-
+        self.language_map = load_language_list(self.language)
 
     @staticmethod
     def _get_available_languages():
@@ -68,4 +64,4 @@ def __init__(self, language=None):
 
     def print(self):
         """Prints the language currently in use."""
-        logger.info(f"Используется язык: {self.language}")
+        logger.info(f"Язык: {self.language}")
