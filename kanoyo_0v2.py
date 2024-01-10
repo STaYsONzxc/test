@@ -13,7 +13,7 @@ import threading
 from assets.configs.config import Config
 import lib.globals.globals as rvc_globals
 
-import lib.tools.modelFetcher_ru as modelFetcher
+import lib.tools.modelFetcher_0v2 as modelFetcher
 import math as math
 import ffmpeg as ffmpeg
 import traceback
@@ -1851,7 +1851,7 @@ def GradioSetup():
     default_weight = ""
 
     with gr.Blocks(theme='NoCrypt/miku', title="Kanoyo-RVC-Fork") as app:
-        gr.HTML("<h1> ❄️ K-RVC-Fork RU 48k Colab & Kaggle Edition </h1>")
+        gr.HTML("<h1> ❄️ K-RVC-Fork 0v2Super 40k Colab & Kaggle Edition </h1>")
         gr.HTML(
             "<h3>Лучший Telegram-канал во всей вселенной — <a href='https://t.me/kanoyotelegram'>Присоединяйся!</a></h3>"
         )
@@ -2493,8 +2493,8 @@ def GradioSetup():
                             )
                         sr2 = gr.Radio(
                             label=i18n("Target sample rate:"),
-                            choices=["48k"],
-                            value="48k",
+                            choices=["40k"],
+                            value="40k",
                             interactive=True,
                         )
                         version19 = gr.Radio(
@@ -2709,12 +2709,12 @@ def GradioSetup():
                             with gr.Row():
                                 pretrained_G14 = gr.Textbox(
                                     label=i18n("Load pre-trained base model G path:"),
-                                    value="assets/pretrained_v2/f0G48k.pth",
+                                    value="assets/pretrained_v2/f0Ov2Super40kG.pth",
                                     interactive=True,
                                 )
                                 pretrained_D15 = gr.Textbox(
                                     label=i18n("Load pre-trained base model D path:"),
-                                    value="assets/pretrained_v2/f0D48k.pth",
+                                    value="assets/pretrained_v2/f0Ov2Super40kD.pth",
                                     interactive=True,
                                 )
                                 with gr.Row():

@@ -8,19 +8,16 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-URL_BASE = "https://huggingface.co/kanoyo/SnowiePretrain_Rename/resolve/main"
+URL_BASE = "https://huggingface.co/kanoyo/0v2Super/resolve/main"
 models_download = [
     (
         "pretrained_v2/",
         [
-            "D48k.pth",
-            "G48k.pth",
-            "f0D48k.pth",
-            "f0G48k.pth",
+            "f0Ov2Super40kD.pth",
+            "f0Ov2Super40kG.pth",
         ],
     ),
 ]
-
 
 individual_files = [
     ("hubert_base.pt", "assets/hubert/"),
