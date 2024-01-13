@@ -1,7 +1,7 @@
 import subprocess
 import os
 import sys
-import gdown
+import lib.tools.download as gdown
 import errno
 import json
 import shutil
@@ -10,8 +10,8 @@ import torch
 import glob
 import gradio as gr
 import traceback
-from urllib.parse import urlencode, unquote, urlparse, parse_qs
 import lib.modules.uvr5.mdx as mdx
+from urllib.parse import urlencode, unquote, urlparse, parse_qs
 from lib.modules.uvr5.mdxprocess import (
     get_model_list,
     get_demucs_model_list,
